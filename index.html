@@ -131,11 +131,56 @@
       document.getElementById('welcome').innerText = `👋 Welcome, ${name}!`;
       document.getElementById('taskForm').style.display = 'block';
 
+    
+
       if (name.toLowerCase() === 'admin') {
-        document.getElementById('adminButton').style.display = 'block';
-        document.getElementById('copyButton').style.display = 'block';
-      }
+  document.getElementById('adminButton').style.display = 'block';
+  document.getElementById('copyButton').style.display = 'block';
+} else {
+  showUserReport(); // 🔁 Show report for regular users
+}
+
     }
+
+    function showUserReport() {
+  const name = localStorage.getItem('employeeName');
+  const today = new Date().toLocaleDateString();
+
+  teamTasksRef.child(name).once('value').then(snapshot => {
+    let html = `<h3>### ${name} - Today</h3>`;
+    let hasTasks = false;
+
+    snapshot.forEach(taskSnap => {
+      const task = taskSnap.val();
+      const taskDate = new Date().toLocaleDateString(undefined, {
+        year: 'numeric', month: 'numeric', day: 'numeric'
+      });
+
+      if (taskDate === today) {
+        hasTasks = true;
+        html += `
+          🔹 <strong>${task.task}</strong>  ⏰ <span style="color:#0073e6;">${task.from} → ${task.to}</span> 🔗 <a href="${task.link}" target="_blank">[Link]</a><br>
+        `;
+      }
+    });
+
+    document.getElementById('report').innerHTML = hasTasks ? html : "📭 No tasks found for today.";
+    document.getElementById('report').style.display = 'block';
+  }).catch(error => {
+    alert("⚠️ Error loading your report. Check your internet or try again later.");
+    console.error(error);
+  });
+  teamTasksRef.once('value')
+  .then(snapshot => {
+    // existing logic...
+  })
+  .catch(error => {
+    alert("⚠️ Failed to load report. Please check your connection.");
+    console.error(error);
+  });
+
+}
+
 
     // Add task with only time
     function addTask() {
