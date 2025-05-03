@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>WordPress Team</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background: #f4f4f4;
+      color: #333;
+    }
+    input, button {
+      padding: 10px;
+      margin: 5px 0;
+      width: 300px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+    button {
+      background: #0073e6;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    .task-form, .report {
+      margin-top: 20px;
+    }
+    .report {
+      background: white;
+      padding: 20px;
+      border-left: 5px solid #0073e6;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.05);
+      font-size: 16px;
+      line-height: 1.6;
+      white-space: pre-wrap;
+    }
+    .task-line {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 0;
+      border-bottom: 1px solid #eee;
+    }
+    .task-line strong {
+      color: #0073e6;
+      flex: 1;
+    }
+    .task-line .task-time {
+      color: #0073e6;
+      flex: 1;
+      text-align: center;
+    }
+    .task-line a {
+      color: #28a745;
+      text-decoration: none;
+    }
+    h1 {
+      color: #0073e6;
+    }
+    h3 {
+      margin-top: 20px;
+      color: #444;
+    }
+  </style>
+</head>
+<body>
+  <h1>🗂️ WordPress Team</h1>
+
+  <div id="login">
+    <input id="employeeName" placeholder="Enter your name" />
+    <button onclick="login()">Login</button>
+  </div>
+
+  <div id="welcome"></div>
+
+  <div id="taskForm" class="task-form" style="display:none">
+    <input id="task" placeholder="📝 Task Name"><br>
+    <input type="datetime-local" id="from"><br>
+    <input type="datetime-local" id="to"><br>
+    <input id="link" placeholder="🔗 Task Link"><br>
+    <button onclick="addTask()">Add Task</button>
+  </div>
+
+  <button onclick="generateReport()" id="adminButton" style="display:none">
+    📋 Generate Daily Report
+  </button>
+
+  <!-- Add Copy Report button -->
+  <button onclick="copyReport()" id="copyButton" style="display:none">
+    📋 Copy Report
+  </button>
+
+  <div id="report" class="report"></div>
+
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
+  <script>
+    // ✅ Your Firebase Config
+    const firebaseConfig = {
+      apiKey: "AIzaSyCU6NQJWIPnEsH8dxYZqj4B1JGltzprX8U",
+      authDomain: "wordpress-daily-report.firebaseapp.com",
+      databaseURL: "https://wordpress-daily-report-default-rtdb.firebaseio.com",
+      projectId: "wordpress-daily-report",
+      storageBucket: "wordpress-daily-report.appspot.com",
+      messagingSenderId: "661337992473",
+      appId: "1:661337992473:web:89b43742cf206fadd3a988",
+      measurementId: "G-5XVWS8LYN4"
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+    const teamTasksRef = db.ref('teamTasks');
+
+    // Login
+    function login() {
+      const name = document.getElementById('employeeName').value.trim();
+      if (name) {
+        localStorage.setItem('employeeName', name);
+        document.getElementById('login').style.display = 'none';
+        showTaskForm();
+      }
+    }
+
+    // Show form
+    function showTaskForm() {
+      const name = localStorage.getItem('employeeName');
+      document.getElementById('welcome').innerText = `👋 Welcome, ${name}!`;
+      document.getElementById('taskForm').style.display = 'block';
+
+      if (name.toLowerCase() === 'admin') {
+        document.getElementById('adminButton').style.display = 'block';
+        document.getElementById('copyButton').style.display = 'block';
+      }
+    }
+
+    // Add task with only time
+    function addTask() {
+      const name = localStorage.getItem('employeeName');
+      const task = document.getElementById('task').value.trim();
+      const fromRaw = document.getElementById('from').value;
+      const toRaw = document.getElementById('to').value;
+      const link = document.getElementById('link').value.trim();
+
+      if (!task || !fromRaw || !toRaw || !link) {
+        alert("⚠️ Please fill in all fields.");
+        return;
+      }
+
+      const from = new Date(fromRaw).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const to = new Date(toRaw).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+      const taskData = { task, from, to, link };
+
+      teamTasksRef.child(name).push(taskData).then(() => {
+        alert("✅ Task added!");
+        document.getElementById('task').value = '';
+        document.getElementById('from').value = '';
+        document.getElementById('to').value = '';
+        document.getElementById('link').value = '';
+      });
+    }
+
+    // Generate report
+    function generateReport() {
+      let htmlReport = "";
+      const date = new Date().toLocaleDateString();
+
+      teamTasksRef.once('value').then(snapshot => {
+        snapshot.forEach(employeeSnapshot => {
+          const name = employeeSnapshot.key;
+          const tasks = [];
+
+          employeeSnapshot.forEach(taskSnapshot => {
+            const task = taskSnapshot.val();
+            tasks.push(task);
+          });
+
+          if (tasks.length > 0) {
+            htmlReport += `<h3>### ${name}</h3>`;
+            tasks.forEach((task, i) => {
+              htmlReport += `
+                🔹 <strong>${task.task}</strong>  ⏰ <span style="color:#0073e6;">${task.from} → ${task.to}</span> 🔗 <a href="${task.link}" target="_blank">[Link]</a>
+              `;
+            });
+            
+          }
+        });
+
+        document.getElementById('report').innerHTML = htmlReport || "📭 No tasks found.";
+      });
+    }
+
+    // Copy report to clipboard
+    function copyReport() {
+      const reportContent = document.getElementById('report').innerText;
+      if (reportContent) {
+        navigator.clipboard.writeText(reportContent).then(() => {
+          alert("✅ Report copied to clipboard!");
+        }).catch((err) => {
+          alert("❌ Failed to copy the report.");
+        });
+      } else {
+        alert("⚠️ No report to copy.");
+      }
+    }
+
+    // Auto login
+    if (localStorage.getItem('employeeName')) {
+      document.getElementById('login').style.display = 'none';
+      showTaskForm();
+    }
+  </script>
+</body>
+</html>
