@@ -159,7 +159,7 @@
       if (taskDate === today) {
         hasTasks = true;
         html += `
-          🔹 <strong>${task.task}</strong>  ⏰ <span style="color:#0073e6;">${task.from} → ${task.to}</span> 🔗 <a href="${task.link}" target="_blank">[Link]</a><br>
+          🔹 <strong style="direction:ltr">${task.task}</strong>  ⏰ <span style="color:#0073e6;">${task.from} → ${task.to}</span> 🔗 <a href="${task.link}" target="_blank">[${task.link}]</a><br>
         `;
       }
     });
