@@ -199,7 +199,7 @@
             htmlReport += `<h3>### ${name}</h3>`;
             tasks.forEach(task => {
               const dir = /[\u0600-\u06FF]/.test(task.task) ? 'rtl' : 'ltr';
-              htmlReport += `🔹 <strong style="direction:${dir}">${task.task}</strong> ⏰ <span style="color:#0073e6;">${task.from} → ${task.to}</span> 🔗 <a href="${task.link}" target="_blank">[Link]</a><br>`;
+              htmlReport += `🔹 <strong style="direction:${dir}">${task.task}</strong> ⏰ <span style="color:#0073e6;">${task.from} → ${task.to}</span> 🔗 <a href="${task.link}" target="_blank">${task.link}</a><br>`;
             });
           }
         });
