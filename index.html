@@ -36,26 +36,6 @@
       line-height: 1.6;
       white-space: pre-wrap;
     }
-    .task-line {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 8px 0;
-      border-bottom: 1px solid #eee;
-    }
-    .task-line strong {
-      color: #0073e6;
-      flex: 1;
-    }
-    .task-line .task-time {
-      color: #0073e6;
-      flex: 1;
-      text-align: center;
-    }
-    .task-line a {
-      color: #28a745;
-      text-decoration: none;
-    }
     h1 {
       color: #0073e6;
     }
@@ -87,7 +67,6 @@
     📋 Generate Daily Report
   </button>
 
-  <!-- Add Copy Report button -->
   <button onclick="copyReport()" id="copyButton" style="display:none">
     📋 Copy Report
   </button>
@@ -98,7 +77,7 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
   <script>
-    // ✅ Your Firebase Config
+    // Firebase config
     const firebaseConfig = {
       apiKey: "AIzaSyCU6NQJWIPnEsH8dxYZqj4B1JGltzprX8U",
       authDomain: "wordpress-daily-report.firebaseapp.com",
@@ -110,12 +89,10 @@
       measurementId: "G-5XVWS8LYN4"
     };
 
-    // Initialize Firebase
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
     const teamTasksRef = db.ref('teamTasks');
 
-    // Login
     function login() {
       const name = document.getElementById('employeeName').value.trim();
       if (name) {
@@ -125,64 +102,19 @@
       }
     }
 
-    // Show form
     function showTaskForm() {
       const name = localStorage.getItem('employeeName');
       document.getElementById('welcome').innerText = `👋 Welcome, ${name}!`;
       document.getElementById('taskForm').style.display = 'block';
 
-    
-
       if (name.toLowerCase() === 'admin') {
-  document.getElementById('adminButton').style.display = 'block';
-  document.getElementById('copyButton').style.display = 'block';
-} else {
-  showUserReport(); // 🔁 Show report for regular users
-}
-
+        document.getElementById('adminButton').style.display = 'block';
+        document.getElementById('copyButton').style.display = 'block';
+      } else {
+        showUserReport();
+      }
     }
 
-    function showUserReport() {
-  const name = localStorage.getItem('employeeName');
-  const today = new Date().toLocaleDateString();
-
-  teamTasksRef.child(name).once('value').then(snapshot => {
-    let html = `<h3>### ${name} - Today</h3>`;
-    let hasTasks = false;
-
-    snapshot.forEach(taskSnap => {
-      const task = taskSnap.val();
-      const taskDate = new Date().toLocaleDateString(undefined, {
-        year: 'numeric', month: 'numeric', day: 'numeric'
-      });
-
-      if (taskDate === today) {
-        hasTasks = true;
-        html += `
-          🔹 <strong style="direction:ltr">${task.task}</strong>  ⏰ <span style="color:#0073e6;">${task.from} → ${task.to}</span> 🔗 <a href="${task.link}" target="_blank">[${task.link}]</a><br>
-        `;
-      }
-    });
-
-    document.getElementById('report').innerHTML = hasTasks ? html : "📭 No tasks found for today.";
-    document.getElementById('report').style.display = 'block';
-  }).catch(error => {
-    alert("⚠️ Error loading your report. Check your internet or try again later.");
-    console.error(error);
-  });
-  teamTasksRef.once('value')
-  .then(snapshot => {
-    // existing logic...
-  })
-  .catch(error => {
-    alert("⚠️ Failed to load report. Please check your connection.");
-    console.error(error);
-  });
-
-}
-
-
-    // Add task with only time
     function addTask() {
       const name = localStorage.getItem('employeeName');
       const task = document.getElementById('task').value.trim();
@@ -197,8 +129,9 @@
 
       const from = new Date(fromRaw).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       const to = new Date(toRaw).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const date = new Date(fromRaw).toLocaleDateString();
 
-      const taskData = { task, from, to, link };
+      const taskData = { task, from, to, link, date };
 
       teamTasksRef.child(name).push(taskData).then(() => {
         alert("✅ Task added!");
@@ -206,13 +139,35 @@
         document.getElementById('from').value = '';
         document.getElementById('to').value = '';
         document.getElementById('link').value = '';
+        showUserReport(); // Refresh user's own report
       });
     }
 
-    // Generate report
+    function showUserReport() {
+      const name = localStorage.getItem('employeeName');
+      const today = new Date().toLocaleDateString();
+
+      teamTasksRef.child(name).once('value').then(snapshot => {
+        let html = `<h3>### ${name} - Today</h3>`;
+        let hasTasks = false;
+
+        snapshot.forEach(taskSnap => {
+          const task = taskSnap.val();
+          if (task.date === today) {
+            hasTasks = true;
+            const dir = /[\u0600-\u06FF]/.test(task.task) ? 'rtl' : 'ltr';
+            html += `🔹 <strong style="direction:${dir}">${task.task}</strong> ⏰ <span style="color:#0073e6;">${task.from} → ${task.to}</span> 🔗 <a href="${task.link}" target="_blank">[Link]</a><br>`;
+          }
+        });
+
+        document.getElementById('report').innerHTML = hasTasks ? html : "📭 No tasks found for today.";
+        document.getElementById('report').style.display = 'block';
+      });
+    }
+
     function generateReport() {
+      const today = new Date().toLocaleDateString();
       let htmlReport = "";
-      const date = new Date().toLocaleDateString();
 
       teamTasksRef.once('value').then(snapshot => {
         snapshot.forEach(employeeSnapshot => {
@@ -221,31 +176,31 @@
 
           employeeSnapshot.forEach(taskSnapshot => {
             const task = taskSnapshot.val();
-            tasks.push(task);
+            if (task.date === today) {
+              tasks.push(task);
+            }
           });
 
           if (tasks.length > 0) {
             htmlReport += `<h3>### ${name}</h3>`;
-            tasks.forEach((task, i) => {
-              htmlReport += `
-                🔹 <strong>${task.task}</strong>  ⏰ <span style="color:#0073e6;">${task.from} → ${task.to}</span> 🔗 <a href="${task.link}" target="_blank">[Link]</a>
-              `;
+            tasks.forEach(task => {
+              const dir = /[\u0600-\u06FF]/.test(task.task) ? 'rtl' : 'ltr';
+              htmlReport += `🔹 <strong style="direction:${dir}">${task.task}</strong> ⏰ <span style="color:#0073e6;">${task.from} → ${task.to}</span> 🔗 <a href="${task.link}" target="_blank">[Link]</a><br>`;
             });
-            
           }
         });
 
         document.getElementById('report').innerHTML = htmlReport || "📭 No tasks found.";
+        document.getElementById('report').style.display = 'block';
       });
     }
 
-    // Copy report to clipboard
     function copyReport() {
       const reportContent = document.getElementById('report').innerText;
       if (reportContent) {
         navigator.clipboard.writeText(reportContent).then(() => {
           alert("✅ Report copied to clipboard!");
-        }).catch((err) => {
+        }).catch(err => {
           alert("❌ Failed to copy the report.");
         });
       } else {
