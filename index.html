@@ -57,7 +57,9 @@
 
   <div id="taskForm" class="task-form" style="display:none">
     <input id="task" placeholder="📝 Task Name"><br>
+    <label for="from">From (Today)</label><br>
     <input type="datetime-local" id="from"><br>
+    <label for="to">To (Today)</label><br>
     <input type="datetime-local" id="to"><br>
     <input id="link" placeholder="🔗 Task Link"><br>
     <button onclick="addTask()">Add Task</button>
@@ -107,12 +109,25 @@
       document.getElementById('welcome').innerText = `👋 Welcome, ${name}!`;
       document.getElementById('taskForm').style.display = 'block';
 
+      setDefaultDateTimeInputs(); // Set default date/time
+
       if (name.toLowerCase() === 'admin') {
         document.getElementById('adminButton').style.display = 'block';
         document.getElementById('copyButton').style.display = 'block';
       } else {
         showUserReport();
       }
+    }
+
+    function setDefaultDateTimeInputs() {
+      const now = new Date();
+      const date = now.toISOString().slice(0, 10); // YYYY-MM-DD
+      const hour = now.getHours().toString().padStart(2, '0');
+      const minute = now.getMinutes().toString().padStart(2, '0');
+      const time = `${hour}:${minute}`;
+
+      document.getElementById('from').value = `${date}T${time}`;
+      document.getElementById('to').value = `${date}T${time}`;
     }
 
     function addTask() {
@@ -136,8 +151,7 @@
       teamTasksRef.child(name).push(taskData).then(() => {
         alert("✅ Task added!");
         document.getElementById('task').value = '';
-        document.getElementById('from').value = '';
-        document.getElementById('to').value = '';
+        setDefaultDateTimeInputs(); // Reset time after submit
         document.getElementById('link').value = '';
         showUserReport(); // Refresh user's own report
       });
