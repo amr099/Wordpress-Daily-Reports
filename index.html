@@ -107,7 +107,7 @@
       document.getElementById('welcome').innerText = `👋 Welcome, ${name}!`;
       document.getElementById('taskForm').style.display = 'block';
 
-      setDefaultDateTimeInputs(); // Set default date/time
+      setDefaultDateTimeInputs();
 
       if (name.toLowerCase() === 'admin') {
         document.getElementById('adminButton').style.display = 'block';
@@ -119,11 +119,10 @@
 
     function setDefaultDateTimeInputs() {
       const now = new Date();
-      const date = now.toISOString().slice(0, 10); // YYYY-MM-DD
+      const date = now.toISOString().slice(0, 10);
       const hour = now.getHours().toString().padStart(2, '0');
       const minute = now.getMinutes().toString().padStart(2, '0');
       const time = `${hour}:${minute}`;
-
       document.getElementById('from').value = `${date}T${time}`;
       document.getElementById('to').value = `${date}T${time}`;
     }
@@ -142,22 +141,22 @@
 
       const from = new Date(fromRaw).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       const to = new Date(toRaw).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      const date = new Date(fromRaw).toLocaleDateString();
+      const date = fromRaw.slice(0, 10); // Use consistent format YYYY-MM-DD
 
       const taskData = { task, from, to, link, date };
 
       teamTasksRef.child(name).push(taskData).then(() => {
         alert("✅ Task added!");
         document.getElementById('task').value = '';
-        setDefaultDateTimeInputs(); // Reset time after submit
+        setDefaultDateTimeInputs();
         document.getElementById('link').value = '';
-        showUserReport(); // Refresh user's own report
+        showUserReport();
       });
     }
 
     function showUserReport() {
       const name = localStorage.getItem('employeeName');
-      const today = new Date().toLocaleDateString();
+      const today = new Date().toISOString().slice(0, 10);
 
       teamTasksRef.child(name).once('value').then(snapshot => {
         let html = `<h3>### ${name} - Today</h3>`;
@@ -178,7 +177,7 @@
     }
 
     function generateReport() {
-      const today = new Date().toLocaleDateString();
+      const today = new Date().toISOString().slice(0, 10);
       let htmlReport = "";
 
       teamTasksRef.once('value').then(snapshot => {
