@@ -128,53 +128,63 @@
     }
 
     function addTask() {
-      const name = localStorage.getItem('employeeName');
-      const task = document.getElementById('task').value.trim();
-      const fromRaw = document.getElementById('from').value;
-      const toRaw = document.getElementById('to').value;
-      const link = document.getElementById('link').value.trim();
+  const name = localStorage.getItem('employeeName');
+  const task = document.getElementById('task').value.trim();
+  const fromRaw = document.getElementById('from').value;
+  const toRaw = document.getElementById('to').value;
+  const link = document.getElementById('link').value.trim();
 
-      if (!task || !fromRaw || !toRaw || !link) {
-        alert("⚠️ Please fill in all fields.");
-        return;
-      }
+  if (!task || !fromRaw || !toRaw || !link) {
+    alert("⚠️ Please fill in all fields.");
+    return;
+  }
 
-      const from = new Date(fromRaw).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      const to = new Date(toRaw).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      const date = fromRaw.slice(0, 10); // Use consistent format YYYY-MM-DD
+  const fromDate = new Date(fromRaw);
+  const toDate = new Date(toRaw);
 
-      const taskData = { task, from, to, link, date };
+  const from = fromDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const to = toDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-      teamTasksRef.child(name).push(taskData).then(() => {
-        alert("✅ Task added!");
-        document.getElementById('task').value = '';
-        setDefaultDateTimeInputs();
-        document.getElementById('link').value = '';
-        showUserReport();
-      });
-    }
+  const date = fromDate.toISOString().split('T')[0]; // UTC-based date (YYYY-MM-DD)
+
+  console.log("Storing task with date:", date); // Debug log
+
+  const taskData = { task, from, to, link, date };
+
+  teamTasksRef.child(name).push(taskData).then(() => {
+    alert("✅ Task added!");
+    document.getElementById('task').value = '';
+    setDefaultDateTimeInputs();
+    document.getElementById('link').value = '';
+    showUserReport();
+  });
+}
+
 
     function showUserReport() {
-      const name = localStorage.getItem('employeeName');
-      const today = new Date().toISOString().slice(0, 10);
+  const name = localStorage.getItem('employeeName');
+  const today = new Date().toISOString().split('T')[0]; // UTC
 
-      teamTasksRef.child(name).once('value').then(snapshot => {
-        let html = `<h3>### ${name} - Today</h3>`;
-        let hasTasks = false;
+  teamTasksRef.child(name).once('value').then(snapshot => {
+    let html = `<h3>### ${name} - Today</h3>`;
+    let hasTasks = false;
 
-        snapshot.forEach(taskSnap => {
-          const task = taskSnap.val();
-          if (task.date === today) {
-            hasTasks = true;
-            const dir = /[\u0600-\u06FF]/.test(task.task) ? 'rtl' : 'ltr';
-            html += `🔹 <strong style="direction:${dir}">${task.task}</strong> ⏰ <span style="color:#0073e6;">${task.from} → ${task.to}</span> 🔗 <a href="${task.link}" target="_blank">[Link]</a><br>`;
-          }
-        });
+    snapshot.forEach(taskSnap => {
+      const task = taskSnap.val();
+      console.log("Task date:", task.date, "| Today:", today); // Debug
 
-        document.getElementById('report').innerHTML = hasTasks ? html : "📭 No tasks found for today.";
-        document.getElementById('report').style.display = 'block';
-      });
-    }
+      if (task.date === today) {
+        hasTasks = true;
+        const dir = /[\u0600-\u06FF]/.test(task.task) ? 'rtl' : 'ltr';
+        html += `🔹 <strong style="direction:${dir}">${task.task}</strong> ⏰ <span style="color:#0073e6;">${task.from} → ${task.to}</span> 🔗 <a href="${task.link}" target="_blank">[Link]</a><br>`;
+      }
+    });
+
+    document.getElementById('report').innerHTML = hasTasks ? html : "📭 No tasks found for today.";
+    document.getElementById('report').style.display = 'block';
+  });
+}
+
 
     function generateReport() {
       const today = new Date().toISOString().slice(0, 10);
